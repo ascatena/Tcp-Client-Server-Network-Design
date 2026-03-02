@@ -667,7 +667,7 @@ A modo de argumentar los envíos de flags de control vistos en el tráfico de re
 # Modo de uso
 
 Para hacer uso y depurar/comprobar la funcionalidad del cliente y servidor implementados, debe seguirse los siguientes pasos.
-Inicialmente debe abrirse la topología implementada en `e23.imn` en el software ***CORE Network Emulator***, de manera que pueda posteriormente iniciarse la sesión de red donde se trabajará con las entidades implementadas. Previamente o en la propia consola del sistema a tomar como servidor (o cliente), debe compilarse el script en lenguaje C a accionar. Esto puede hacerse via consola con el comando:
+Inicialmente debe abrirse la topología implementada en `topology.imn` en el software ***CORE Network Emulator***, de manera que pueda posteriormente iniciarse la sesión de red donde se trabajará con las entidades implementadas. Previamente o en la propia consola del sistema a tomar como servidor (o cliente), debe compilarse el script en lenguaje C a accionar. Esto puede hacerse via consola con el comando:
 ```bash
   gcc <archivo.c> -o <archivo_ejecutable>
 ```
