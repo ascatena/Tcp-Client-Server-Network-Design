@@ -614,13 +614,13 @@ flowchart TD
 
 Se realiza la captura de datos de la conexión TCP entre el servidor 181.29.189.130 (perteneciente a la subred D) y el cliente 181.29.189.20 (perteneciente a la subred C). A continuación, se pueden observar los diferentes paquetes que se intercambiaron durante el establecimiento de la conexión, la transmisión de datos y la terminación de la conexión. El de inicio de la conexión TCP comienza con el *three-way handshake* (caracteristica del protocolo TCP), que permite una comunicación confiable (a diferencia de UDP), asegurando que ambas máquinas estén sincronizadas antes de empezar a compartir información. Véase la siguiente figura con el tráfico de datos TCP capturado.
 
-![Tŕafico de Red capturado en la comunicación TCP entre cliente-servidor con Wireshark](/Imagenes/Trafico_de_Red.jpg)
+![Tŕafico de Red capturado en la comunicación TCP entre cliente-servidor con Wireshark](/Imgs/Trafico_de_Red.jpg)
 
 A modo de argumentar los envíos de flags de control vistos en el tráfico de red, nos basamos en los esquemas de *3-way handshake* y *4-way handshake* presentados en la teoría, cistos respectivamente a continuación.
 
-![3-way Handshake](/Imagenes/3-way.jpg)
+![3-way Handshake](/Imgs/3-way.jpg)
 
-![4-way Handshake](/Imagenes/4-way.jpg)
+![4-way Handshake](/Imgs/4-way.jpg)
 
 
 
