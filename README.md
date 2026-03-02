@@ -12,103 +12,151 @@
 
 ## Índice
 
-- A. [Diseño de Topología y Subnetting (VLSM)](#diseño-de-topología-y-subnetting-vlsm)
-    1. [Bloque de Red y Caracterización](#bloque-de-red-y-caracterización)
-    2. [Definición de Subredes](#definición-de-subredes)
-    3. [Asignación de Direcciones](#asignación-de-direcciones)
-    4. [Enlaces Punto a Punto](#enlaces-punto-a-punto)
-    5. [Tablas de Ruteo](#tablas-de-ruteo)
-    6. [Implementación de NAT](#implementación-de-nat)
+- A. [Diseño de Infraestructura de Red (VLSM y Ruteo)](#diseño-de-infraestructura-de-red-vlsm-y-ruteo)
+    1. [Contexto y Objetivos de Diseño](#contexto-y-objetivos-de-diseño)
+    2. [Resolución y Criterios Técnicos](#resolución-y-criterios-técnicos)
+    3. [Tablas de ruteo](#tablas-de-ruteo)
+    4. [Implementación de NAT](#implementación-de-nat)
 
-- B. [Arquitectura Cliente-Servidor TCP](#arquitectura-cliente-servidor-tcp)
-    1. [Modelo General](#modelo-general)
-    2. [Servidor](#servidor)
-    3. [Cliente](#cliente)
-    4. [Análisis de Tráfico de Red](#análisis-de-tráfico-de-red)
-    5. [Modo de Uso](#modo-de-uso)
+- B. [Arquitectura Cliente-Servidor TCP](#arquitectura-cliente-servidor-tcp) 
+    1. [Objetivo del Sistema](#objetivo-del-sistema)
+    2. [Resolución e Implementación](#resolución-e-implementación)
+    3. [Servidor](#servidor)
+    4. [Cliente](#cliente)
+    5. [Análisis de tráfico de red](#análisis-de-tráfico-de-red)
+    6. [Modo de uso](#modo-de-uso)
 
-- C. [Archivo `topology.imn` – Definición de Topología en CORE](#archivo-topologyimn--definición-de-topología-en-core)
-    1. [¿Qué es `topology.imn`?](#qué-es-topologyimn)
-    2. [Estructura General del Archivo](#estructura-general-del-archivo)
-    3. [Arquitectura Definida en el Archivo](#arquitectura-definida-en-el-archivo)
-    4. [Funcionamiento Interno](#funcionamiento-interno)
-    5. [Integración en CORE](#integración-en-core)
-    6. [Rol del Archivo en el Proyecto](#rol-del-archivo-en-el-proyecto)
+- C. [Bibliografía](#bibliografía)
 
-- D. [Bibliografía](#bibliografía)
- 
 ---
 
-# Diseño de Topología y Subnetting (VLSM)
+# Diseño de Infraestructura de Red (VLSM y Ruteo)
 
-## Bloque de Red y Caracterización
+## Contexto y Objetivos de Diseño
 
-El diseño de la infraestructura parte del bloque:
+Se desarrolla una infraestructura de red completa partiendo del bloque:
 
 ```
 181.29.188.0/22
 ```
 
-En notación binaria:
+El objetivo del diseño es:
+
+- Implementar subnetting eficiente mediante VLSM.
+- Asignar direccionamiento coherente a cada segmento.
+- Configurar ruteo estático con caminos alternativos.
+- Integrar una red privada mediante NAT.
+- Garantizar conectividad total entre todos los segmentos e Internet.
+- Considerar enlaces punto a punto y tolerancia ante fallas.
+
+---
+
+## Resolución y Criterios Técnicos
+
+### Determinaciones iniciales
+
+El bloque asignado es:
+
+```
+181.29.188.0/22
+```
+
+Representación binaria:
 
 ```
 10110101.00011101.10111100.00000000
   181   .  29    .  188   .  0
 ```
 
-Por su prefijo binario `10`, corresponde a una red de **Clase B**, dentro del rango `128.x.x.x – 191.x.x.x`.
+El prefijo binario `10` indica que pertenece a **Clase B**, dentro del rango:
 
-Con máscara `/22` (255.255.252.0) se dispone de:
+```
+128.x.x.x – 191.x.x.x
+```
+
+Con máscara `/22` (255.255.252.0):
 
 \[
 2^{10} - 2 = 1022 \text{ hosts}
 \]
 
-considerando la exclusión de dirección de red y broadcast.
-
-El diseño se realiza utilizando **VLSM (Variable Length Subnet Masking)** con el objetivo de optimizar el uso del espacio de direccionamiento y evitar solapamientos.
+Se restan 2 direcciones por red y broadcast.
 
 ---
 
-## Definición de Subredes
+### Subnetting VLSM
 
-Las subredes fueron dimensionadas según requerimientos de hosts, priorizando eficiencia y escalabilidad.
+Se realizó un diseño de máscaras variables considerando:
 
-| Redes | Hosts requeridos | Subred Asignada | Rango |
-|:------:|:----------------:|:---------------:|:------------------------------:|
-| Red A | 230 | 181.29.188.0/24 | 181.29.188.0 – 181.29.188.255 |
-| Red B | 500 | 181.29.190.0/23 | 181.29.190.0 – 181.29.191.255 |
-| Red C | 40  | 181.29.189.0/26 | 181.29.189.0 – 181.29.189.63 |
-| Red D | 64  | 181.29.189.128/25 | 181.29.189.128 – 181.29.189.255 |
+- Cantidad de hosts requeridos.
+- No solapamiento.
+- Optimización del espacio disponible.
 
-La Red E corresponde al bloque privado `10.0.0.0/24`, perteneciente al rango definido por **RFC 1918**, reservado para direccionamiento interno.
+### Definición de cada Red propuesta
 
----
+|  Redes  | Hosts requeridos |  Subred Asignada | Rango |
+|:-------:|:-----:|:---------------:|:---------------:|
+| Red A   |  230  | 181.29.188.0/24 | 181.29.188.0 - 181.29.188.255 |
+| Red B   |  500  | 181.29.190.0/23 | 181.29.190.0 - 181.29.191.255 |
+| Red C   |  40   | 181.29.189.0/26 | 181.29.189.0 - 181.29.189.63 |
+| Red D   |  64   | 181.29.189.128/25 | 181.29.189.128 - 181.29.189.255 |
 
-## Asignación de Direcciones
+La Red E corresponde al bloque privado:
 
-Se definieron direcciones representativas para los nodos principales:
+```
+10.0.0.0/24
+```
 
-| Dispositivo | Red | Dirección |
-|-------------|-----|-----------|
-| n6  | Red A | 181.29.188.20/24 |
-| n8  | Red B | 181.29.190.20/23 |
-| n9  | Red C | 181.29.189.20/26 |
-| n10 | Red D | 181.29.189.130/25 |
-| n11 | Red E | 10.0.0.20/24 |
+Rango reservado por RFC 1918 (Clase A).
 
 ---
 
-## Enlaces Punto a Punto
+### Asignación de Direcciones
 
-Para interconexión entre routers se utilizaron subredes `/30`, optimizadas para enlaces de dos hosts:
+<table>
+  <tr>
+    <th colspan="5" style="text-align: center;">Direcciones de los dispositivos</th>
+  </tr>
+  <tr>
+    <th>Dispositivo</th>
+    <th>Red</th>
+    <th>Dirección designada</th>
+  </tr>
+  <tr>
+    <td>n6</td>
+    <td>Red A</td>
+    <td>181.29.188.20/24</td>
+  </tr>
+  <tr>
+    <td>n8</td>
+    <td>Red B</td>
+    <td>181.29.190.20/23</td>
+  </tr>
+  <tr>
+    <td>n9</td>
+    <td>Red C</td>
+    <td>181.29.189.20/26</td>
+  </tr>
+  <tr>
+    <td>n10</td>
+    <td>Red D</td>
+    <td>181.29.189.130/25</td>
+  </tr>
+  <tr>
+    <td>n11</td>
+    <td>Red E</td>
+    <td>10.0.0.20/24</td>
+  </tr>
+</table>
 
-\[
-2^2 = 4 \text{ direcciones} \Rightarrow 2 utilizables
-\]
+---
 
-| Router | Conexión | Red |
-|--------|----------|------|
+### Enlaces Punto a Punto
+
+Se implementaron subredes `/30` para interconexión entre routers.
+
+| Router | Conexión con | Red Designada |
+|--------|--------------|--------------|
 | AEROESPACIAL | CENTRAL | 181.29.189.68/30 |
 | AEROESPACIAL | HIDRÁULICA | 181.29.189.72/30 |
 | HIDRÁULICA | CENTRAL | 181.29.189.76/30 |
@@ -120,378 +168,525 @@ Para interconexión entre routers se utilizaron subredes `/30`, optimizadas para
 
 ## Tablas de Ruteo
 
-El criterio de diseño del ruteo prioriza:
+Se destaca que el criterio de seleccion de metricas para otorgarle prioridad a ciertos caminos fue tomado en base a cual es el camino mas corto para llegar a destino. En caso de tener caminos de igual recorrido, se opta por seleccionar que los ruteos pasen por el Central preferentemente, como prioridad. 
+A continuación, en las siguientes tablas puede observarse una representación del diseño de las tablas de ruteo para el bloque de red.
 
-- Caminos más cortos.
-- Uso preferencial del router Central cuando existen múltiples alternativas.
-- Redundancia ante caída de enlaces.
+<table>
+  <tr>
+    <th colspan="5" style="text-align: center;">Router Hidráulica</th>
+  </tr>
+  <tr>
+    <th>Destino</th>
+    <th>Máscara</th>
+    <th>Pasarela</th>
+    <th>Métrica</th>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Hidráulica</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Central</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Aeroespacial</td>
+    <td>20</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Central</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Aeroespacial</td>
+    <td>20</td>
+  </tr>
+  <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Aeroespacial</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Central</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Electrotecnia</td>
+    <td>20</td>
+  </tr>
+</table>
+<table>
+  <tr>
+    <th colspan="5" style="text-align: center;">Router Aeroespacial</th>
+  </tr>
+  <tr>
+    <th>Destino</th>
+    <th>Máscara</th>
+    <th>Pasarela</th>
+    <th>Métrica</th>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Hidráulica</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Central</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Central</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Hidráulica</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Central</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Hidráulica</td>
+    <td>10</td>
+  </tr>
+  <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Aeroespacial</td>
+    <td>0</td>
+  </tr>
+</table>
 
-(Se mantienen las tablas originales tal como fueron definidas en el diseño.)
+<table>
+  <tr>
+    <th colspan="5" style="text-align: center;">Router Electrotecnia</th>
+  </tr>
+  <tr>
+    <th>Destino</th>
+    <th>Máscara</th>
+    <th>Pasarela</th>
+    <th>Métrica</th>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Hidráulica</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Central</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Aeroespacial</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Mecánica</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Central</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Hidráulica</td>
+    <td>10</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <th colspan="5" style="text-align: center;">Router Mecánica</th>
+  </tr>
+  <tr>
+    <th>Destino</th>
+    <th>Máscara</th>
+    <th>Pasarela</th>
+    <th>Métrica</th>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Mecánica</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <th colspan="5" style="text-align: center;">Router Central</th>
+  </tr>
+  <tr>
+    <th>Destino</th>
+    <th>Máscara</th>
+    <th>Pasarela</th>
+    <th>Métrica</th>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Hidráulica</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Electrotecnia</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red A</td>
+    <td>/24</td>
+    <td>Aeroespacial</td>
+    <td>20</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Hidráulica</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red B</td>
+    <td>/23</td>
+    <td>Aeroespacial</td>
+    <td>20</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Electrotecnia</td>
+    <td>0</td>
+  </tr>
+  <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Hidráulica</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red C</td>
+    <td>/26</td>
+    <td>Aeroespacial</td>
+    <td>20</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Aeroespacial</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Hidráulica</td>
+    <td>0</td>
+  </tr>
+    <tr>
+    <td>Red D</td>
+    <td>/25</td>
+    <td>Electrotecnia</td>
+    <td>10</td>
+  </tr>
+    <tr>
+    <td>Red E</td>
+    <td>/24</td>
+    <td>Central</td>
+    <td>0</td>
+  </tr>
+</table>
 
 ---
 
 ## Implementación de NAT
 
-Se implementa **Network Address Translation (NAT)** en el router Central.
+La traducción de direcciones (NAT) se implementa en el router **Central**, ya que es el punto de enlace entre:
 
-Objetivos:
+- Red privada 10.0.0.0/24  
+- Direcciones públicas  
+- ISP  
 
-- Permitir salida a Internet desde la red privada `10.0.0.0/24`.
-- Enmascarar direcciones privadas.
-- Optimizar uso de direcciones públicas.
+Se utiliza `iptables` para realizar:
 
-La configuración se realizó mediante reglas `iptables` en CORE Network Emulator, utilizando enmascaramiento dinámico.
+- Enmascaramiento dinámico.
+- Registro en tabla NAT.
+- Traducción bidireccional.
+
+El servicio permite que múltiples hosts privados utilicen una única IP pública.
 
 ---
 
 # Arquitectura Cliente-Servidor TCP
 
-## Modelo General
+## Objetivo del Sistema
 
-El sistema implementa una arquitectura TCP cliente-servidor en C que:
+Se implementa una arquitectura TCP cliente-servidor en C que:
 
-- Establece conexión confiable mediante TCP.
-- Realiza intercambio de clave pública.
-- Envía datos cifrados.
-- Finaliza conexión ordenadamente.
-
-Se utilizan las librerías:
-
-- `<sys/socket.h>`
-- `<netinet/in.h>`
-- `<arpa/inet.h>`
+- Establece conexión confiable.
+- Intercambia clave pública.
+- Transmite datos cifrados.
+- Finaliza ordenadamente la conexión.
+- Permite análisis completo del tráfico capturado.
 
 ---
 
-## Servidor
+## Resolución e Implementación
 
-El servidor:
+Se desarrollan dos programas en C:
 
-1. Crea un socket TCP.
-2. Asocia IP y puerto.
-3. Escucha conexiones.
-4. Acepta cliente.
-5. Recibe clave pública.
-6. Genera 20 números aleatorios (0–26).
-7. Los cifra con:
+- `servidor.c`
+- `cliente.c`
 
-\[
-c = (x + key) \bmod 100
-\]
+Utilizando:
 
-8. Envía arreglo cifrado.
-9. Finaliza con cierre ordenado.
+```
+<sys/socket.h>
+<netinet/in.h>
+<arpa/inet.h>
+```
 
-### Diagrama de Flujo del Servidor
+Se emplean estructuras `sockaddr_in`, y funciones:
 
-```mermaid
+- socket()
+- bind()
+- listen()
+- accept()
+- connect()
+- send()
+- recv()
+- shutdown()
+- close()
+
+---
+
+# Servidor
+
+La implementación del servidor TCP diseñado tiene como objetivo recibir una clave pública desde un cliente, generar 20 números aleatorios, cifrarlos utilizando dicha clave, y enviarlos de vuelta al cliente. Dentro del proceso del mismo, se administra la creación del socket TCP, su correlación con una dirección IP y un puerto, y el procedimiento protocolar TCP de conexión con el cliente. También se administra la ordenada finalización de la conexión. En pos de conseguir un código más limpio, estrucuturado y fácil de interpretar, se estableció la rutina de configuración de conexión dentro del flujo principal, y el servicio específico dentro de una función declarada (`func()`) a la cual se la llama dentro de este flujo.
+
+En el inicio, se declaran las variables y estructuras de control de conexión y de configuración del propio *server*, como el descriptor del socket `sockfd` y las estructuras del cliente y servidor definidas como `sockaddr_in`. Esta estructura tiene especial importancia ya que contiene los datos de funcionamiento del servidor:
+```C
+struct sockaddr_in {
+    short sin_family; // Define la familia de direcciones IP a esperar, en caso IPv4 se usa AF_INET
+    unsigned short sin_port; // Define el port (en orden de bytes de la red, por lo que se usa htons() para pasar de fomato de Host a formato de Red) 
+    struct in_addr sin_addr; // Esta estructura define la direccion IP del socket (se escribe en 32 bits por o que se usa inet_aton() para conversión)
+    char sin_zero[8]; // Definido pero no se usa
+    };
+```
+Mediante la función `socket()` se crea el socket, explicitando `AF_INET` para familia de direcciones IPv4, `SOCK_STREAM` para indicar el uso de datos TCP, y el $0$ final indica al SO que seleccione el protocolo adecuado.
+```C
+  sockfd = socket(AF_INET, SOCK_STREAM, 0);
+```
+Luego se asigna tanto la IP como el puerto a utilizar por el servidor, completando los campos de la estructura antes mencionada. Se utiiza la bandera `INADDR_ANY` para que acepte conexiones en cualquier interfaz de red disponible.
+```C
+    servaddr.sin_family = AF_INET;  
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);  
+    servaddr.sin_port = htons(PORT);  
+```
+Creado el socket TCP se lo asocia con los datos de la estructura, es decir la dirección IP y puerto especificados, mediante `bind()`. Como `bind()` se puede usar con otras familias, es necesario hacer una conversión de tipo (cast) entre `sockaddr_in` y `sockaddr`.
+Posteriormente, se pasa el socket a un estado de apertura pasiva con `listen()`, donde espera por conexiones entrantes. Una vez que un cliente se conecta, la función `accept()` establece la conexión y permite el intercambio de datos.
+
+El flujo del servicio comienza con el servidor recibiendo la clave pública del cliente, la cual se procesa y almacena para usar en el cifrado. Esto se hace mediante la función `recv()`, la cual lee los datos del descriptor de archivos *connected* del socket, y los almacena dentro de `buffer`, que es un arreglo de caractéres. A continuación, el servidor genera 20 números aleatorios entre 0 y 26, los cifra con una operación modular (especificada en la función de usuario `encrypt()`), basada en la clave pública recibida, y los almacena en un arreglo. Este arreglo cifrado es enviado al cliente mediante la función `send()`, la cual a la inversa de `recv()`, copia lo almacenado en el *buffer* de datos encriptados (en este caso `num_array`) en el descriptor del socket. Finalmente, el servidor envía la flag de cierre (*FIN*) al cliente, utilizando al función `shutdown()`, cerrando el descriptor para la escritura y lectura de datos con la bandera `SHUT_WR`, y cierra la conexión de manera ordenada usando `close()`.
+
+Cabe destacar que se implementó un manejo básico de errores con tal de asegurar que el servidor informe ante fallos comunes como problemas al crear el socket, errores de enlace o fallas de comunicación.
+
+---
+
+### Diagramas de flujo
+
+``` mermaid
 graph TD
     A[Inicio del servidor]
-    A --> B["Crear socket TCP"]
-    B --> C[Configurar dirección]
-    C --> D["bind()"]
-    D --> E["listen()"]
-    E --> F["accept()"]
-    F --> G["func(connfd)"]
-    G --> H["close(sockfd)"]
+    A --> B["Crear socket TCP \n sockfd = socket()"]
+    B -->|Socket creado exitosamente| C[Configurar dirección del servidor]
+    B -->|Error al crear socket| Z["Finalizar programa\n exit(0)"]
+    C --> D["Enlazar socket a IP y puerto especificados \n bind()"]
+    D -->|Socket enlazado exitosamente| E["Escuchar conexiones entrantes \n listen()"]
+    D -->|Error en bind| Z
+    E -->|Escuchando correctamente| F["Aceptar conexión del cliente\n connfd=accept()"]
+    E -->|Error al escuchar| Z
+    F -->|Conexión aceptada| G["Llamar a la función de servicio\n func(connfd)"]
+    F -->|Error al aceptar conexión| Z
+    G --> I["Cerrar socket de escucha\n close(sockfd)"]
+    I --> J["Finalizar programa correctamente\n return(0)"]
 ```
-
-### Diagrama de Servicio Interno
-
-```mermaid
+Para especificar su funcionamiento, se adjunta a continuación el diagrama de flujo de la función que realiza el servicio propiamente dicho.
+``` mermaid
 graph TD
     A["func(connfd)"]
-    A --> B["Recibir llave pública"]
-    B --> C["Generar y cifrar 20 números"]
-    C --> D["Enviar arreglo cifrado"]
-    D --> E["shutdown()"]
+    A --> B["Limpiar buffer para recibir datos \n bzero()"]
+    B --> C["Recibir llave pública del cliente\n read()"]
+    C -->|Error en la lectura| D["Error\n Return"]
+    C -->|Llave recibida| E["Mostrar llave pública"]
+
+    E --> F["Generar números aleatorios, cifrarlos usando llave pública y almacenarlos\n encrypt(x, key)"]
+    F --> I["Enviar datos cifrados al cliente\n write()"]
+    I -->|Error al enviar| J["Error\n Return"]
+    I -->|Envío exitoso| K["Enviar mensaje 'FIN' al cliente\n write()"]
+    
+    K -->|Error al enviar 'FIN'| L["Error\n Return"]
+    K -->|Envío exitoso| M["Imprimir mensaje de cierre"]
+    M --> O["Finalizar función"]
 ```
+---
+
+# Cliente
+
+Para el cliente, se generó un script en C que se encarga de describir el funcionamiento del mismo, con el objetivo de que el cliente se conecte al servidor implementado, acudiendo a establecer una conexión TCP para recibir y desencriptar el paquete de números enviados de manera cifrada por el servidor. Previamente a la recepción de los datos, el cliente informa la clave pública mediante la cual serán encriptados los datos por el servidor. Nuevamente se estrucutura la rutina de configuración de conexión dentro del flujo principal, y comportamiento específico del cliente dentro de (`func()`) a la cual se la llama dentro del flujo principal.
+Respetando los requisitos de la consigna, en primer lugar, el cliente solicita al usuario la IP y el puerto del servidor al que desea conectarse. Luego, se procede a crear un socket TCP de manera totalmente análga a como se realiza en el servidor, usando `socket()`, explicitand el protocolo `AF_INET` para IPv4 y el tipo `SOCK_STREAM` para establecer una conexión orientada a TCP. Tras crear el socket, se repite el mismo proceso que en la contraparte, donde se configura la dirección del servidor (utlizando la IP y el puerto provistos por el usuario) usando la estructura `sockaddr_in` ya comentada. Para la conexión con el servidor se reutiliza la función `connect()`. Una vez exitosa la conexión, el cliente comunica en formato de cadena la clave pública mediante el uso de `send()` y el descriptor de archivos del socket (`sockfd`).
+
+Posteriormente, el cliente entra en su función específica, en donde recibe el arreglo de 20 números cifrados enviados por el servidor a través del uso de `recv()` y `sockfd`, copiando lo recibido en `buffer`. Estos datos deben ser desencriptados, y se hace usando una función de desencriptación (`decrypt()`), que aplica módulo 100 a la operación $x - clave +100$, donde $x$ es el dato a desencriptar. Tanto los números cifrados como los resultantes de la desencriptación se imprimen en la terminal a modo de control. Toda esta dinámica está implementada dentro de un bucle que controla lo devuelto por `recv()`, ya que se espera qe el servidor enví la flag *FIN* respectiva para el cierre de la conexión, siendo 0 el valor de retorno cuando `recv()` recibe dicho paquete. Ya recibidos los datos, el cliente debe manejar el cierre de la comunicación. Después de recibir el mensaje *FIN* del servidor, el cliente responde enviando *FIN* de vuelta al servidor (dinámica ya incuida en el propio protocolo TCP), lo que indica el cierre de la conexión. Finalmente, el socket se cierra con la función `close()`.
 
 ---
 
-## Cliente
+### Diagramas de flujo
 
-El cliente:
-
-1. Solicita IP y puerto al usuario.
-2. Crea socket TCP.
-3. Se conecta al servidor.
-4. Envía clave pública.
-5. Recibe arreglo cifrado.
-6. Desencripta con:
-
-\[
-x = (c - key + 100) \bmod 100
-\]
-
-7. Imprime datos.
-8. Cierra conexión ordenadamente.
-
-### Diagrama de Flujo del Cliente
-
-```mermaid
+``` mermaid
 graph TD
     A[Inicio del cliente]
-    A --> B["Solicitar IP y Puerto"]
-    B --> C["socket()"]
-    C --> D["connect()"]
-    D --> E["Enviar clave pública"]
-    E --> F["func(sockfd, key)"]
-    F --> G["close(sockfd)"]
+    A --> B["Solicitar IP y Puerto del servidor al usuario\n fgets()"]
+    B --> C["Crear socket TCP\n sockfd=socket()"]
+    C -->|Socket creado exitosamente| D[Configurar dirección del servidor]
+    C -->|Error al crear socket| Z["Finalizar programa\n exit(0)"]
+    D --> E["Conectar al servidor\n connect()"]
+    E -->|Conexión exitosa| F["Enviar clave pública al servidor\n write()"]
+    E -->|Error al conectar al servidor| Z
+    F -->|Llave enviada correctamente| G["Llamar función de servicio \n func(sockfd, key)"]
+    F -->|Error al enviar la llave| Z
+    G --> N["Cerrar socket\n close(sockfd)"]
+    N --> O["Finalizar programa correctamente \n return(0)"]
+```
+```mermaid
+flowchart TD
+    A["func(sockfd, key)"]
+    A --> B["Limpiar buffer\n bzero()"]
+    B --> C["Lectura de datos enviados por el servidor\n read()"]
+    C -->|Error en la lectura| D["Error \n Return"]
+    C -->|Datos recibidos| E["Imprimir números cifrados recibidos"]
+    E --> F["Desencriptar datos y mostrarlos \n decrypt(x, key)"]
+    F --> H["Leer mensaje 'FIN' del servidor\nread()"]
+    H -->|Error en la lectura| I["Error \n Return"]
+    H -->|Mensaje recibido| J["Verificar si el mensaje es 'FIN'\n strncmp()"]
+    J -->|Es 'FIN'| K["Imprimir mensaje de cierre exitoso y responder 'FIN'\n write()"]
+    J -->|No es 'FIN'| M["Mostrar mensaje de error"]
+    M --> P
+    K --> P["Finalizar función"]
 ```
 
 ---
 
-## Análisis de Tráfico de Red
+# Análisis de tráfico de Red
 
-Se realizó captura con Wireshark sobre la comunicación TCP.
+### Análisis de la Conexión TCP entre el Cliente y el Servidor
 
-### Establecimiento (3-Way Handshake)
+Se realiza la captura de datos de la conexión TCP entre el servidor 181.29.189.130 (perteneciente a la subred D) y el cliente 181.29.189.20 (perteneciente a la subred C). A continuación, se pueden observar los diferentes paquetes que se intercambiaron durante el establecimiento de la conexión, la transmisión de datos y la terminación de la conexión. El de inicio de la conexión TCP comienza con el *three-way handshake* (caracteristica del protocolo TCP), que permite una comunicación confiable (a diferencia de UDP), asegurando que ambas máquinas estén sincronizadas antes de empezar a compartir información. Véase la siguiente figura con el tráfico de datos TCP capturado.
 
-1. SYN (cliente)
-2. SYN-ACK (servidor)
-3. ACK (cliente)
+![Tŕafico de Red capturado en la comunicación TCP entre cliente-servidor con Wireshark](/Imgs/Trafico_de_Red.jpg)
 
-### Transmisión de Datos
+A modo de argumentar los envíos de flags de control vistos en el tráfico de red, me basé en los esquemas de *3-way handshake* y *4-way handshake*, vistos respectivamente a continuación.
 
-- Paquetes con flag PSH.
-- Confirmaciones ACK.
-- Control de números SEQ y ACK.
+![3-way Handshake](/Imgs/3-way.jpg)
 
-### Terminación (4-Way Handshake)
-
-1. FIN (servidor)
-2. ACK (cliente)
-3. FIN (cliente)
-4. ACK (servidor)
-
-Se verificaron correctamente:
-
-- Sincronización inicial.
-- Confirmaciones de recepción.
-- Cierre ordenado.
+![4-way Handshake](/Imgs/4-way.jpg)
 
 ---
 
-## Modo de Uso
+# Modo de uso
 
-1. Abrir topología en CORE.
-2. Compilar:
-
+Para hacer uso y depurar/comprobar la funcionalidad del cliente y servidor implementados, debe seguirse los siguientes pasos.
+Inicialmente debe abrirse la topología implementada en `e23.imn` en el software ***CORE Network Emulator***, de manera que pueda posteriormente iniciarse la sesión de red donde se trabajará con las entidades implementadas. Previamente o en la propia consola del sistema a tomar como servidor (o cliente), debe compilarse el script en lenguaje C a accionar. Esto puede hacerse via consola con el comando:
 ```bash
-gcc servidor.c -o servidor
-gcc cliente.c -o cliente
+  gcc <archivo.c> -o <archivo_ejecutable>
 ```
-
-3. Ejecutar servidor.
-4. Ejecutar cliente.
-5. Ingresar IP y puerto del servidor.
-
----
----
-
-# Archivo `topology.imn` – Definición de Topología en CORE
-
-## ¿Qué es `topology.imn`?
-
-El archivo `topology.imn` es el descriptor completo de la topología utilizada en CORE (Common Open Research Emulator).  
-
-Se trata de un archivo en formato declarativo que:
-
-- Define nodos (routers, PCs).
-- Configura interfaces y direcciones IP.
-- Establece enlaces físicos.
-- Asigna servicios (NAT, IPForward, StaticRoute, DefaultRoute).
-- Incluye scripts personalizados de configuración.
-- Representa visualmente las redes y segmentos.
-
-En otras palabras, este archivo es la representación integral de la arquitectura de red implementada en el proyecto.
+Esto debe realizarse tanto para el script `cliente.c` como `servidor.c`, de lo contrario no podran ejecutarse.
+Una vez compilado, se debe ingresar a la consola del sistema al que se quiere accionar como servidor y ejecutar en él el archivo ejecutable compilado previamente. Es importante primero ejecutar el servidor en un sistema y luego el cliente, de lo contrario no se establecerá conexión alguna. La ejecución en terminal se realiza como:
+```bash
+  ./<archivo_ejecutable>
+```
+Es de utilidad el comando `cd` para poder cambiar de directorio a donde se haya ubicado los archivos ejecutables.
+Una vez ejecutado, en el servidor, se informará la correcta conexión o agún error en la misma en caso que corresponda, y solo se procederá al servicio si se conecta un cliente. En el caso del cliente, ejecutado el programa deberá informarse el número de puerto y la dirección IP del servidor, información accesible tanto en la topología de CORE (en caso de la IP), como en la terminal del servidor (en caso del puerto). Proporcionado los datos se podrá observar la funcionalidad del esquema cliente-servidor reaizado.
 
 ---
 
-## Estructura General del Archivo
-
-El archivo se organiza en bloques principales:
-
-### 1. `node`
-
-Define cada dispositivo de la topología.
-
-Ejemplo conceptual:
-
-```
-node n1 {
-    type router
-    model router
-    network-config {
-        hostname CENTRAL
-        interface eth0
-            ip address 163.10.11.2/30
-    }
-}
-```
-
-Cada nodo incluye:
-
-- Tipo (router / PC).
-- Hostname.
-- Interfaces.
-- Direccionamiento IPv4 / IPv6.
-- Servicios habilitados.
-- Scripts personalizados.
-
----
-
-### 2. `link`
-
-Define conexiones punto a punto entre nodos.
-
-Ejemplo:
-
-```
-link l1 {
-    nodes {n2 n1}
-}
-```
-
-Cada enlace representa un cable virtual dentro del entorno CORE.
-
----
-
-### 3. `custom-config`
-
-Permite ejecutar scripts automáticamente al iniciar la topología.
-
-En este proyecto se utilizan principalmente:
-
-- `nat.sh`
-- `staticroute.sh`
-- `defaultroute.sh`
-
-Estos scripts configuran:
-
-- NAT mediante iptables.
-- Rutas estáticas.
-- Rutas por defecto.
-- Métricas para priorización de caminos.
-
----
-
-## Arquitectura Definida en el Archivo
-
-La topología implementa:
-
-- 5 routers principales:
-  - CENTRAL
-  - AEROESPACIAL
-  - HIDRAULICA
-  - ELECTROTECNIA
-  - MECANICA
-
-- 4 hosts finales:
-  - n6 (Red A)
-  - n8 (Red B)
-  - n9 (Red C)
-  - n10 (Red D)
-
-- 1 host en red privada:
-  - n11 (Red E – 10.0.0.0/24)
-
-- 1 nodo ISP simulado.
-
-Se implementa:
-
-- Subnetting VLSM.
-- Enlaces /30 punto a punto.
-- Ruteo estático con métricas.
-- NAT dinámico (masquerade).
-- IPv4 e IPv6 coexistentes en algunos enlaces.
-
----
-
-## Funcionamiento Interno
-
-Al iniciar la topología en CORE:
-
-1. Se crean los namespaces Linux correspondientes a cada nodo.
-2. Se levantan las interfaces virtuales.
-3. Se asignan direcciones IP.
-4. Se ejecutan automáticamente los servicios definidos:
-   - IPForward
-   - StaticRoute
-   - DefaultRoute
-   - NAT
-5. Se ejecutan los scripts personalizados incluidos en `custom-config`.
-
-### NAT en el Router CENTRAL
-
-El script `nat.sh` ejecuta:
-
-```
-iptables -t nat -A POSTROUTING -s 10.0.0.0/24 -o eth0 -j MASQUERADE
-iptables -A FORWARD -i eth4 -o eth0 -s 10.0.0.0/24 -j ACCEPT
-iptables -A FORWARD -i eth0 -o eth4 -d 10.0.0.0/24 -j ACCEPT
-```
-
-Esto permite:
-
-- Traducción de direcciones privadas a públicas.
-- Acceso al ISP desde la red 10.0.0.0/24.
-- Comunicación bidireccional controlada.
-
----
-
-## Integración en CORE
-
-### Método 1 – Apertura Directa
-
-1. Abrir CORE.
-2. Seleccionar **File → Open**.
-3. Cargar `topology.imn`.
-4. Presionar **Start** para iniciar la emulación.
-
-CORE automáticamente:
-
-- Genera todos los nodos.
-- Crea enlaces.
-- Ejecuta scripts.
-- Aplica ruteo.
-
----
-
-### Método 2 – Desde Línea de Comando
-
-Si se desea iniciar desde terminal:
-
-```
-core-gui topology.imn
-```
-
-o en versiones más recientes:
-
-```
-core topology.imn
-```
-
----
-
-## Rol del Archivo en el Proyecto
-
-`topology.imn` es la materialización de la arquitectura de red diseñada.
-
-Define:
-
-- Estructura lógica.
-- Conectividad física virtual.
-- Políticas de ruteo.
-- Política de traducción de direcciones.
-- Segmentación por subredes.
-
-Esta topología constituye el entorno de ejecución sobre el cual se despliega y analiza el sistema cliente-servidor TCP implementado en el proyecto.
----
 # Bibliografía
+1. ["Manual de sockets en C.", Universidad de Cantabria.](https://ocw.unican.es/pluginfile.php/2343/course/section/2300/PIR-Practica4_ManualSocketsC.pdf) Consultado en línea 2024-12-05.
 
-1. Manual de sockets en C — Universidad de Cantabria  
-2. TCP Server-Client implementation in C — GeeksforGeeks  
-3. Manual recv() — linux.die.net  
-4. Manual send() — linux.die.net
+2. ["TCP Server-Client implementation in C."](https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/) Consultado en línea 2024-12-05.
+
+3. ["Manual de la función recv()"](https://linux.die.net/man/2/recv) 
+
+4. ["Manual de la función send()"](https://linux.die.net/man/2/send)
+ 
